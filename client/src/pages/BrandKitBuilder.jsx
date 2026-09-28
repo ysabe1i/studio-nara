@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getKit, createKit, updateKit, uploadFile, listProjects } from '../api'
+import { getKit, createKit, updateKit, deleteKit, uploadFile, listProjects } from '../api'
+import ConfirmDelete from '../components/molecules/ConfirmDelete.jsx'
 import ColorRow from '../components/molecules/ColorRow.jsx'
 import LogoThumbnail from '../components/molecules/LogoThumbnail.jsx'
 import FontPreviewCard from '../components/molecules/FontPreviewCard.jsx'
@@ -23,6 +24,7 @@ export default function BrandKitBuilder() {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [linkedProjects, setLinkedProjects] = useState([])
+  const [deleting, setDeleting] = useState(false)
 
   async function load() {
     if (isNew) return
@@ -59,6 +61,19 @@ export default function BrandKitBuilder() {
       setError(caught)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function remove() {
+    if (deleting) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await deleteKit(id)
+      navigate('/library?tab=kits')
+    } catch (caught) {
+      setError(caught)
+      setDeleting(false)
     }
   }
 
@@ -132,7 +147,9 @@ export default function BrandKitBuilder() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
       {error && (
-        <p className="text-primary mb-4" role="alert">{error.message}</p>
+        <p className="text-small text-ink bg-surface border-l-4 border-primary rounded px-3 py-2 mb-4" role="alert">
+          {error.message}
+        </p>
       )}
 
       <div className="flex items-center gap-3 mb-6">
@@ -222,6 +239,23 @@ export default function BrandKitBuilder() {
             </ul>
           )}
         </section>
+      )}
+
+      {!isNew && (
+        <div className="mt-8">
+          <ConfirmDelete
+            label="delete kit"
+            message={
+              linkedProjects.length > 0
+                ? linkedProjects.length === 1
+                  ? "delete this kit for good? its linked project will stay, but lose its kit link. this can't be undone."
+                  : `delete this kit for good? its ${linkedProjects.length} linked projects will stay, but lose their kit link. this can't be undone.`
+                : "delete this kit for good? this can't be undone."
+            }
+            onConfirm={remove}
+            busy={deleting}
+          />
+        </div>
       )}
     </main>
   )

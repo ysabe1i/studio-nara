@@ -1,3 +1,5 @@
+import useFileUrl from "../../hooks/useFileUrl.js";
+
 /**
  * Card — molecule. Props: title, subtitle, onClick, and either `thumbnail`
  * (an image URL, used by project cards) or `preview` (a custom node, used by
@@ -5,6 +7,7 @@
  * takes priority if both are given.
  */
 export default function Card({ title, subtitle, thumbnail, preview, onClick }) {
+  const thumbnailUrl = useFileUrl(thumbnail);
   return (
     <button
       type="button"
@@ -14,8 +17,8 @@ export default function Card({ title, subtitle, thumbnail, preview, onClick }) {
       <div className="aspect-video bg-canvas border border-dashed border-ink/20 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
         {preview ? (
           preview
-        ) : thumbnail ? (
-          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+        ) : thumbnailUrl ? (
+          <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
         ) : (
           <span className="text-ink/30 text-small">no image</span>
         )}

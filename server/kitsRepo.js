@@ -21,6 +21,12 @@ export async function getAll(pool, userId) {
   return attachChildren(pool, result.rows)
 }
 
+export async function ownedBy(pool, userId, id) {
+  if (!/^\d+$/.test(String(id))) return false
+  const result = await pool.query('SELECT 1 FROM kits WHERE id = $1 AND user_id = $2', [id, userId])
+  return result.rows.length > 0
+}
+
 export async function getById(pool, userId, id) {
   const result = await pool.query('SELECT * FROM kits WHERE id = $1 AND user_id = $2', [id, userId])
   if (result.rows.length === 0) return null

@@ -9,6 +9,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { auth } from '../firebase.js'
+import { clearFileCache } from '../api/files.js'
 
 const AuthContext = createContext(null)
 
@@ -55,6 +56,7 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
+    clearFileCache()
     await signOut(auth)
   }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import useFileUrl from "../../hooks/useFileUrl.js";
 
 /**
  * FontPreviewCard — molecule. Props: fontFamilyName, fileUrl, onRemove.
@@ -11,12 +12,13 @@ import { useEffect, useState } from "react";
  */
 export default function FontPreviewCard({ fontFamilyName, fileUrl, onRemove }) {
   const [status, setStatus] = useState(fileUrl ? "loading" : "idle");
+  const resolvedUrl = useFileUrl(fileUrl);
 
   useEffect(() => {
-    if (!fileUrl) return;
+    if (!resolvedUrl) return;
     let cancelled = false;
 
-    const face = new FontFace(fontFamilyName, `url(${fileUrl})`);
+    const face = new FontFace(fontFamilyName, `url(${resolvedUrl})`);
     face
       .load()
       .then((loadedFace) => {
@@ -31,7 +33,7 @@ export default function FontPreviewCard({ fontFamilyName, fileUrl, onRemove }) {
     return () => {
       cancelled = true;
     };
-  }, [fileUrl, fontFamilyName]);
+  }, [resolvedUrl, fontFamilyName]);
 
   return (
     <div className="flex items-center gap-3 bg-surface rounded-lg px-3 py-2">

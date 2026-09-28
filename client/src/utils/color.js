@@ -1,4 +1,4 @@
-import { converter, formatHex, parse } from 'culori'
+import { clampChroma, converter, displayable, formatHex, parse } from 'culori'
 
 const toRgb = converter('rgb')
 const toHsl = converter('hsl')
@@ -34,14 +34,21 @@ export function hslToOklchString({ h, s, l }) {
 // anything unparseable so callers can reject bad input instead of crashing.
 export function parseToHsl(input) {
   if (!input || typeof input !== 'string') return null
-  const parsed = parse(input.trim())
+  const text = input.trim()
+  // Allow hex typed without the leading "#" (e.g. "ff00ae").
+  const parsed = parse(text) ?? (/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(text) ? parse(`#${text}`) : undefined)
   if (!parsed) return null
-  const hsl = toHsl(parsed)
+  // A typed oklch color can be outside what a screen can show. Pull it back
+  // by reducing chroma (keeping lightness/hue) instead of letting the
+  // out-of-range channel values skew the conversion.
+  const visible = displayable(parsed) ? parsed : clampChroma(toOklch(parsed), 'oklch')
+  const hsl = toHsl(visible)
   if (!hsl) return null
+  const clamp = (n) => Math.min(100, Math.max(0, n))
   return {
     h: Number.isFinite(hsl.h) ? hsl.h : 0,
-    s: (hsl.s ?? 0) * 100,
-    l: (hsl.l ?? 0) * 100,
+    s: clamp((hsl.s ?? 0) * 100),
+    l: clamp((hsl.l ?? 0) * 100),
   }
 }
 

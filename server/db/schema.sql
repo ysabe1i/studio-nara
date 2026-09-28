@@ -55,3 +55,15 @@ CREATE INDEX IF NOT EXISTS quick_notes_created_at_idx ON quick_notes (created_at
 CREATE INDEX IF NOT EXISTS kit_colors_kit_id_idx ON kit_colors (kit_id);
 CREATE INDEX IF NOT EXISTS kit_logos_kit_id_idx ON kit_logos (kit_id);
 CREATE INDEX IF NOT EXISTS kit_fonts_kit_id_idx ON kit_fonts (kit_id);
+
+CREATE TABLE IF NOT EXISTS uploads (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    TEXT        NOT NULL,
+  filename   TEXT        NOT NULL,
+  mime_type  TEXT        NOT NULL,
+  size_bytes INTEGER     NOT NULL,
+  data       BYTEA       NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS uploads_user_id_idx ON uploads (user_id);

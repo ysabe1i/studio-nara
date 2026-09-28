@@ -17,17 +17,28 @@ import {
 // value if what was typed doesn't parse as a color.
 function FormatField({ label, value, onCommit }) {
   const [draft, setDraft] = useState(value)
+  const [invalid, setInvalid] = useState(false)
 
   useEffect(() => {
     setDraft(value)
+    setInvalid(false)
   }, [value])
 
-  function commit() {
+  // Enter keeps invalid text on screen (flagged) so it can be fixed;
+  // blur quietly reverts to the current color instead.
+  function commit({ revertIfInvalid }) {
+    // Untouched field (e.g. just clicked in and out): nothing to save, and
+    // re-parsing its rounded text would nudge the color.
+    if (draft === value) return
     const parsed = parseToHsl(draft)
     if (parsed) {
+      setInvalid(false)
       onCommit(parsed)
-    } else {
+    } else if (revertIfInvalid) {
       setDraft(value)
+      setInvalid(false)
+    } else {
+      setInvalid(true)
     }
   }
 
@@ -37,15 +48,22 @@ function FormatField({ label, value, onCommit }) {
       <input
         type="text"
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
+        onChange={(e) => {
+          setDraft(e.target.value)
+          setInvalid(false)
+        }}
+        onBlur={() => commit({ revertIfInvalid: true })}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            commit()
+            commit({ revertIfInvalid: false })
           }
         }}
-        className="flex-1 min-w-0 bg-canvas border border-ink/15 rounded px-2 py-1 font-mono text-small"
+        aria-invalid={invalid}
+        title={invalid ? "that doesn't look like a color" : undefined}
+        className={`flex-1 min-w-0 bg-canvas border rounded px-2 py-1 font-mono text-small ${
+          invalid ? 'border-primary border-2' : 'border-ink/15'
+        }`}
       />
     </label>
   )
@@ -145,10 +163,10 @@ export default function ColorPicker({ hex, onChange, onAddHarmonyColor }) {
           </div>
 
           <div className="space-y-1.5">
-            <FormatField label="hex" value={hslToHex(hsl)} onCommit={setHsl} />
-            <FormatField label="rgb" value={hslToRgbString(hsl)} onCommit={setHsl} />
-            <FormatField label="hsl" value={hslToHslString(hsl)} onCommit={setHsl} />
-            <FormatField label="oklch" value={hslToOklchString(hsl)} onCommit={setHsl} />
+            <FormatField label="hex" value={hslToHex(hsl)} onCommit={commitHsl} />
+            <FormatField label="rgb" value={hslToRgbString(hsl)} onCommit={commitHsl} />
+            <FormatField label="hsl" value={hslToHslString(hsl)} onCommit={commitHsl} />
+            <FormatField label="oklch" value={hslToOklchString(hsl)} onCommit={commitHsl} />
           </div>
 
           <div className="pt-1 border-t border-ink/10 space-y-2">

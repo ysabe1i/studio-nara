@@ -1,52 +1,88 @@
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import { rateLimit } from 'express-rate-limit'
 import multer from 'multer'
 import { pool } from './db/pool.js'
 import { requireAuth } from './authMiddleware.js'
 import * as kits from './kitsRepo.js'
 import * as projects from './projectsRepo.js'
 import * as notes from './notesRepo.js'
+import * as uploads from './uploadsRepo.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
   .split(',').map((o) => o.trim()).filter(Boolean)
 
+// On Render the app sits behind one proxy. Without this every visitor shares
+// the proxy's IP, so they'd all share one rate limit (and rate limiting would
+// refuse to key by IP at all). 1 = trust exactly one proxy hop.
+app.set('trust proxy', 1)
+
+// The client is served from a different origin (GitHub Pages) and reads API
+// responses with fetch, so responses must be allowed cross-origin.
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(cors({ origin: allowedOrigins }))
 app.use(express.json({ limit: '100kb' }))
 
-const uploadsDir = path.join(__dirname, 'uploads')
-app.use('/uploads', express.static(uploadsDir))
+const tooManyRequests = { error: 'Too many requests. Please wait a moment and try again.' }
 
-const ALLOWED_MIME_TYPES = new Set([
-  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
-  'font/ttf', 'font/otf', 'font/woff', 'font/woff2',
-  'application/font-woff', 'application/font-woff2', 'application/x-font-ttf',
-  'application/octet-stream',
-])
+// Broad ceiling per IP for the whole API, applied before the login check so
+// it also covers unauthenticated hammering.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: tooManyRequests,
+})
+
+// Tighter limit on uploads (each one writes to the free database), keyed by
+// the signed-in user rather than IP so one person can't burn through it
+// from many addresses.
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (request) => request.userId,
+  message: { error: 'You are uploading too quickly. Please wait a few minutes and try again.' },
+})
+
+const USER_STORAGE_LIMIT_BYTES = 25 * 1024 * 1024
+
+// The stored MIME type comes from this extension allow-list, never from the
+// client's declared type, so "evil.html" labelled image/png is rejected.
+const ALLOWED_TYPES = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+}
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: uploadsDir,
-    filename: (request, file, callback) => {
-      const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-      callback(null, `${Date.now()}-${safeName}`)
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (request, file, callback) => {
     const extension = path.extname(file.originalname).toLowerCase()
-    const allowedExtensions = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.ttf', '.otf', '.woff', '.woff2'])
-    if (ALLOWED_MIME_TYPES.has(file.mimetype) || allowedExtensions.has(extension)) {
+    if (ALLOWED_TYPES[extension]) {
       callback(null, true)
     } else {
       callback(new Error('Only image and font files are allowed'))
     }
   },
 })
+
+function cleanUpOrphans(userId) {
+  uploads.removeOrphans(pool, userId).catch((error) => console.error('cleanup failed:', error))
+}
 
 app.get('/healthz', (request, response) => response.json({ ok: true }))
 
@@ -62,14 +98,51 @@ app.get('/readyz', async (request, response) => {
 
 // Every /api/* route below requires a verified Firebase ID token.
 // request.userId is set by requireAuth and scopes all data per-owner.
+app.use('/api', apiLimiter)
 app.use('/api', requireAuth)
 
-app.post('/api/uploads', (request, response) => {
-  upload.single('file')(request, response, (error) => {
+app.post('/api/uploads', uploadLimiter, (request, response) => {
+  upload.single('file')(request, response, async (error) => {
     if (error) return response.status(400).json({ error: error.message })
     if (!request.file) return response.status(400).json({ error: 'No file uploaded' })
-    response.status(201).json({ url: `/uploads/${request.file.filename}` })
+    try {
+      const used = await uploads.usedBytes(pool, request.userId)
+      if (used + request.file.size > USER_STORAGE_LIMIT_BYTES) {
+        return response.status(413).json({
+          error: 'You have used all your file storage. Remove some logos, fonts or images and try again.',
+        })
+      }
+      const extension = path.extname(request.file.originalname).toLowerCase()
+      const id = await uploads.create(pool, request.userId, {
+        filename: request.file.originalname.slice(0, 200),
+        mimeType: ALLOWED_TYPES[extension],
+        data: request.file.buffer,
+      })
+      response.status(201).json({ url: `/api/files/${id}` })
+    } catch (caught) {
+      console.error(caught)
+      response.status(500).json({ error: 'Something went wrong on the server' })
+    }
   })
+})
+
+app.get('/api/files/:id', async (request, response, next) => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(request.params.id)) {
+    return response.status(404).json({ error: 'Not found' })
+  }
+  try {
+    const file = await uploads.getById(pool, request.userId, request.params.id)
+    if (!file) return response.status(404).json({ error: 'Not found' })
+    response.set({
+      'Content-Type': file.mime_type,
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'",
+      'Cache-Control': 'private, max-age=86400',
+    })
+    response.send(file.data)
+  } catch (error) {
+    next(error)
+  }
 })
 
 function validateKit(body) {
@@ -82,9 +155,20 @@ function validateKit(body) {
 
   if (!name) errors.push('name is required')
   if (name.length > 120) errors.push('name must be 120 characters or fewer')
+  if (tag.length > 60) errors.push('tag must be 60 characters or fewer')
+  if (colors.length > 50 || logos.length > 50 || fonts.length > 50) {
+    errors.push('a kit can have at most 50 colors, 50 logos and 50 fonts')
+  }
+  const tooLong = (value, max) => typeof value === 'string' && value.length > max
   for (const color of colors) {
     if (typeof color.hex !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(color.hex)) {
       errors.push(`invalid color hex: ${color.hex}`)
+    }
+    if (tooLong(color.name, 60)) errors.push('color names must be 60 characters or fewer')
+  }
+  for (const item of [...logos, ...fonts]) {
+    if (tooLong(item.label, 200) || tooLong(item.font_family_name, 200)) {
+      errors.push('file and font names must be 200 characters or fewer')
     }
   }
   return { errors, value: { name, tag, colors, logos, fonts } }
@@ -114,6 +198,7 @@ app.put('/api/kits/:id', async (request, response, next) => {
   try {
     const row = await kits.update(pool, request.userId, request.params.id, value)
     if (!row) return response.status(404).json({ error: 'Not found' })
+    cleanUpOrphans(request.userId)
     response.json(row)
   } catch (error) { next(error) }
 })
@@ -122,6 +207,7 @@ app.delete('/api/kits/:id', async (request, response, next) => {
   try {
     const removed = await kits.remove(pool, request.userId, request.params.id)
     if (!removed) return response.status(404).json({ error: 'Not found' })
+    cleanUpOrphans(request.userId)
     response.status(204).end()
   } catch (error) { next(error) }
 })
@@ -135,6 +221,7 @@ function validateProject(body) {
   if (!title) errors.push('title is required')
   if (title.length > 200) errors.push('title must be 200 characters or fewer')
   if (notesWorked.length > 4000) errors.push('reflection must be 4000 characters or fewer')
+  if (notesToChange.length > 4000) errors.push('notes to change must be 4000 characters or fewer')
 
   return {
     errors,
@@ -154,18 +241,33 @@ app.get('/api/projects/:id', async (request, response, next) => {
   } catch (error) { next(error) }
 })
 
+// A project may only link to a kit the caller owns; otherwise anyone could
+// attach their project to (and probe for) another user's kit ids.
+async function kitLinkIsValid(userId, kitId) {
+  return !kitId || (await kits.ownedBy(pool, userId, kitId))
+}
+
 app.post('/api/projects', async (request, response, next) => {
   const { errors, value } = validateProject(request.body ?? {})
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
-  try { response.status(201).json(await projects.create(pool, request.userId, value)) } catch (error) { next(error) }
+  try {
+    if (!(await kitLinkIsValid(request.userId, value.kit_id))) {
+      return response.status(400).json({ error: 'kit_id must be one of your own kits' })
+    }
+    response.status(201).json(await projects.create(pool, request.userId, value))
+  } catch (error) { next(error) }
 })
 
 app.put('/api/projects/:id', async (request, response, next) => {
   const { errors, value } = validateProject(request.body ?? {})
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
   try {
+    if (!(await kitLinkIsValid(request.userId, value.kit_id))) {
+      return response.status(400).json({ error: 'kit_id must be one of your own kits' })
+    }
     const row = await projects.update(pool, request.userId, request.params.id, value)
     if (!row) return response.status(404).json({ error: 'Not found' })
+    cleanUpOrphans(request.userId)
     response.json(row)
   } catch (error) { next(error) }
 })
@@ -174,6 +276,7 @@ app.delete('/api/projects/:id', async (request, response, next) => {
   try {
     const removed = await projects.remove(pool, request.userId, request.params.id)
     if (!removed) return response.status(404).json({ error: 'Not found' })
+    cleanUpOrphans(request.userId)
     response.status(204).end()
   } catch (error) { next(error) }
 })

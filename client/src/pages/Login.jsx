@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Button from '../components/atoms/Button.jsx'
 import StudioNaraWordmark from '../components/atoms/StudioNaraWordmark.jsx'
@@ -33,7 +33,6 @@ function GoogleMark() {
 
 export default function Login() {
   const { user, login, signup, loginWithGoogle, resendVerification, refreshVerification, logout } = useAuth()
-  const location = useLocation()
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -43,7 +42,6 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
 
-  const from = location.state?.from?.pathname || '/'
   const awaitingVerification = Boolean(user && !user.emailVerified)
 
   // Coming back from the email tab: re-check verification automatically.
@@ -61,7 +59,9 @@ export default function Login() {
   }, [resendCooldown])
 
   if (user?.emailVerified) {
-    return <Navigate to={from} replace />
+    // Always land on Home after logging in, not on whatever page the
+    // user was on when they logged out.
+    return <Navigate to="/" replace />
   }
 
   function switchMode(next) {

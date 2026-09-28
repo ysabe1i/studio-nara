@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getProject, createProject, updateProject, uploadFile, listKits } from '../api'
+import { getProject, createProject, updateProject, deleteProject, uploadFile, listKits } from '../api'
+import ConfirmDelete from '../components/molecules/ConfirmDelete.jsx'
 import Button from '../components/atoms/Button.jsx'
 import IconButton from '../components/atoms/IconButton.jsx'
+import useFileUrl from '../hooks/useFileUrl.js'
 
 const emptyProject = { title: '', image_url: null, kit_id: '', notes_worked: '', notes_to_change: '' }
 
@@ -16,6 +18,8 @@ export default function ProjectEntry() {
   const [kits, setKits] = useState([])
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const imageUrl = useFileUrl(draft.image_url)
 
   async function load() {
     try {
@@ -66,6 +70,19 @@ export default function ProjectEntry() {
     }
   }
 
+  async function remove() {
+    if (deleting) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await deleteProject(id)
+      navigate('/library?tab=projects')
+    } catch (caught) {
+      setError(caught)
+      setDeleting(false)
+    }
+  }
+
   if (status === 'loading') {
     return <main className="max-w-2xl mx-auto px-6 py-10"><p className="text-ink/60">loading...</p></main>
   }
@@ -82,7 +99,11 @@ export default function ProjectEntry() {
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-10">
-      {error && <p className="text-primary mb-4" role="alert">{error.message}</p>}
+      {error && (
+        <p className="text-small text-ink bg-surface border-l-4 border-primary rounded px-3 py-2 mb-4" role="alert">
+          {error.message}
+        </p>
+      )}
 
       <div className="flex items-center gap-3 mb-6">
         <IconButton ariaLabel="Back to library" onClick={() => navigate('/library?tab=projects')} icon={<span aria-hidden="true">←</span>} />
@@ -101,8 +122,8 @@ export default function ProjectEntry() {
         htmlFor="project-image"
         className="block aspect-video bg-surface border border-dashed border-ink/20 rounded-lg mb-4 flex items-center justify-center cursor-pointer overflow-hidden"
       >
-        {draft.image_url ? (
-          <img src={draft.image_url} alt="Project draft" className="w-full h-full object-cover" />
+        {imageUrl ? (
+          <img src={imageUrl} alt="Project draft" className="w-full h-full object-cover" />
         ) : (
           <span className="text-small text-ink/50">upload draft image (optional)</span>
         )}
@@ -131,6 +152,17 @@ export default function ProjectEntry() {
         className="w-full bg-surface rounded-lg px-3 py-2 text-body resize-none"
         placeholder="what worked, what you'd change next time..."
       />
+
+      {!isNew && (
+        <div className="mt-8">
+          <ConfirmDelete
+            label="delete project"
+            message="delete this project for good? this can't be undone."
+            onConfirm={remove}
+            busy={deleting}
+          />
+        </div>
+      )}
     </main>
   )
 }

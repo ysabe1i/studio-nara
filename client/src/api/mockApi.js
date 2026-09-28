@@ -81,6 +81,8 @@ export async function deleteKit(id) {
   await delay()
   const data = read()
   data.kits = data.kits.filter((k) => String(k.id) !== String(id))
+  // Same as the database's ON DELETE SET NULL: projects survive, unlinked.
+  data.projects = data.projects.map((p) => (String(p.kit_id) === String(id) ? { ...p, kit_id: null } : p))
   write(data)
 }
 
