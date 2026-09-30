@@ -1,6 +1,9 @@
+// accent1/accent2 sit on a magenta/lime fill, which the design system requires
+// paired with literal black text (not the "ink" token, which inverts for dark
+// mode) — see the contrast rule in docs/03-design-system.md.
 const VARIANTS = {
-  accent1: "bg-accent text-ink border-ink",
-  accent2: "bg-primary text-ink border-ink",
+  accent1: "bg-accent text-black border-black",
+  accent2: "bg-primary text-black border-black",
   outline: "bg-canvas text-ink border-ink",
 };
 

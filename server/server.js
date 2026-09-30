@@ -9,6 +9,7 @@ import { requireAuth } from './authMiddleware.js'
 import * as kits from './kitsRepo.js'
 import * as projects from './projectsRepo.js'
 import * as notes from './notesRepo.js'
+import * as reflections from './reflectionsRepo.js'
 import * as uploads from './uploadsRepo.js'
 
 const app = express()
@@ -281,15 +282,41 @@ app.delete('/api/projects/:id', async (request, response, next) => {
   } catch (error) { next(error) }
 })
 
+app.get('/api/projects/:id/reflections', async (request, response, next) => {
+  try {
+    if (!(await projects.ownedBy(pool, request.userId, request.params.id))) {
+      return response.status(404).json({ error: 'Not found' })
+    }
+    response.json(await reflections.getAllForProject(pool, request.userId, request.params.id))
+  } catch (error) { next(error) }
+})
+
+app.post('/api/projects/:id/reflections', async (request, response, next) => {
+  const text = typeof request.body?.text === 'string' ? request.body.text.trim() : ''
+  if (!text) return response.status(400).json({ error: 'text is required' })
+  if (text.length > 4000) return response.status(400).json({ error: 'entry must be 4000 characters or fewer' })
+  try {
+    const row = await reflections.create(pool, request.userId, request.params.id, text)
+    if (!row) return response.status(404).json({ error: 'Not found' })
+    response.status(201).json(row)
+  } catch (error) { next(error) }
+})
+
 app.get('/api/notes', async (request, response, next) => {
   try { response.json(await notes.getAll(pool, request.userId)) } catch (error) { next(error) }
 })
 
 app.post('/api/notes', async (request, response, next) => {
   const text = typeof request.body?.text === 'string' ? request.body.text.trim() : ''
+  const projectId = request.body?.project_id || null
   if (!text) return response.status(400).json({ error: 'text is required' })
   if (text.length > 500) return response.status(400).json({ error: 'text must be 500 characters or fewer' })
-  try { response.status(201).json(await notes.create(pool, request.userId, text)) } catch (error) { next(error) }
+  try {
+    if (projectId && !(await projects.ownedBy(pool, request.userId, projectId))) {
+      return response.status(400).json({ error: 'project_id must be one of your own projects' })
+    }
+    response.status(201).json(await notes.create(pool, request.userId, text, projectId))
+  } catch (error) { next(error) }
 })
 
 app.delete('/api/notes/:id', async (request, response, next) => {

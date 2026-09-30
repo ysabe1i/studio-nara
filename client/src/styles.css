@@ -12,6 +12,23 @@
 @tailwind utilities;
 
 @layer base {
+  /* RGB channel triples (not hex) so Tailwind's opacity modifiers
+     (text-ink/60, border-ink/20, ...) keep working — see tailwind.config.js.
+     Dark values were contrast-checked against docs/03-design-system.md's
+     method: ink on canvas is ~16.4:1, ink/70 on canvas ~8.3:1, both comfortably
+     past the 4.5:1 body-text minimum. */
+  :root {
+    --color-canvas: 255 255 255;
+    --color-surface: 244 244 240;
+    --color-ink: 17 17 17;
+  }
+
+  .dark {
+    --color-canvas: 18 18 20;
+    --color-surface: 30 30 33;
+    --color-ink: 240 240 238;
+  }
+
   body {
     @apply bg-canvas text-ink font-sans text-body antialiased;
     margin: 0;
@@ -42,7 +59,7 @@
   height: 14px;
   border-radius: 9999px;
   background: white;
-  border: 2px solid theme("colors.ink");
+  border: 2px solid rgb(var(--color-ink));
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
@@ -52,7 +69,7 @@
   height: 14px;
   border-radius: 9999px;
   background: white;
-  border: 2px solid theme("colors.ink");
+  border: 2px solid rgb(var(--color-ink));
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }

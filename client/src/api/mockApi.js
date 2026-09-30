@@ -131,7 +131,32 @@ export async function deleteProject(id) {
   await delay()
   const data = read()
   data.projects = data.projects.filter((p) => String(p.id) !== String(id))
+  // Same as the database: reflections cascade-delete with their project,
+  // but notes just lose the link (ON DELETE SET NULL).
+  if (data.reflections) data.reflections = data.reflections.filter((r) => String(r.project_id) !== String(id))
+  data.notes = data.notes.map((n) => (String(n.project_id) === String(id) ? { ...n, project_id: null } : n))
   write(data)
+}
+
+// ---------- project reflections ----------
+
+export async function listReflections(projectId) {
+  await delay()
+  const data = read()
+  if (!data.reflections) data.reflections = []
+  return data.reflections
+    .filter((r) => String(r.project_id) === String(projectId))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+}
+
+export async function createReflection(projectId, text) {
+  await delay()
+  const data = read()
+  if (!data.reflections) data.reflections = []
+  const created = { id: newId('reflection'), project_id: projectId, text, created_at: new Date().toISOString() }
+  data.reflections.push(created)
+  write(data)
+  return created
 }
 
 // ---------- quick notes ----------
@@ -141,10 +166,10 @@ export async function listNotes() {
   return read().notes.slice().sort((a, b) => b.created_at.localeCompare(a.created_at))
 }
 
-export async function createNote(text) {
+export async function createNote(text, projectId) {
   await delay()
   const data = read()
-  const created = { id: newId('note'), text, created_at: new Date().toISOString() }
+  const created = { id: newId('note'), text, project_id: projectId ?? null, created_at: new Date().toISOString() }
   data.notes.push(created)
   write(data)
   return created

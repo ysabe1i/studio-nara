@@ -3,8 +3,13 @@ export async function getAll(pool, userId) {
   return result.rows
 }
 
-export async function create(pool, userId, text) {
-  const result = await pool.query('INSERT INTO quick_notes (user_id, text) VALUES ($1, $2) RETURNING *', [userId, text])
+// projectId must be one the caller owns, or null. Checked by the caller
+// (server.js), same pattern as projects.kit_id.
+export async function create(pool, userId, text, projectId) {
+  const result = await pool.query(
+    'INSERT INTO quick_notes (user_id, text, project_id) VALUES ($1, $2, $3) RETURNING *',
+    [userId, text, projectId ?? null]
+  )
   return result.rows[0]
 }
 

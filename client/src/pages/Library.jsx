@@ -39,7 +39,7 @@ export default function Library() {
           aria-selected={tab === 'kits'}
           onClick={() => setTab('kits')}
           className={`px-4 py-2 rounded-full text-small font-medium ${
-            tab === 'kits' ? 'bg-primary text-ink' : 'bg-surface text-ink/70'
+            tab === 'kits' ? 'bg-primary text-black' : 'bg-surface text-ink/70'
           }`}
         >
           kits
@@ -50,7 +50,7 @@ export default function Library() {
           aria-selected={tab === 'projects'}
           onClick={() => setTab('projects')}
           className={`px-4 py-2 rounded-full text-small font-medium ${
-            tab === 'projects' ? 'bg-primary text-ink' : 'bg-surface text-ink/70'
+            tab === 'projects' ? 'bg-primary text-black' : 'bg-surface text-ink/70'
           }`}
         >
           projects

@@ -27,6 +27,8 @@ export const {
   createProject,
   updateProject,
   deleteProject,
+  listReflections,
+  createReflection,
   listNotes,
   createNote,
   deleteNote,

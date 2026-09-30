@@ -40,9 +40,22 @@ CREATE TABLE IF NOT EXISTS projects (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- project_id is added below via ALTER TABLE (not inline here), so this file
+-- stays safe to run against a database that already has this table without
+-- that column.
 CREATE TABLE IF NOT EXISTS quick_notes (
   id         SERIAL PRIMARY KEY,
   user_id    TEXT        NOT NULL,
+  text       TEXT        NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- A dated log of reflection entries per project (replaces a single freeform
+-- field). Scoped to a user indirectly through projects.user_id, same pattern
+-- as kit_colors being scoped through kits.user_id.
+CREATE TABLE IF NOT EXISTS project_reflections (
+  id         SERIAL PRIMARY KEY,
+  project_id INTEGER     NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   text       TEXT        NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -67,3 +80,11 @@ CREATE TABLE IF NOT EXISTS uploads (
 );
 
 CREATE INDEX IF NOT EXISTS uploads_user_id_idx ON uploads (user_id);
+
+-- Added after the tables above already shipped: needs ADD COLUMN IF NOT
+-- EXISTS rather than living in the CREATE TABLE, so this file stays safe to
+-- run again against a database that already has quick_notes.
+ALTER TABLE quick_notes ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS quick_notes_project_id_idx ON quick_notes (project_id);
+CREATE INDEX IF NOT EXISTS project_reflections_project_id_idx ON project_reflections (project_id);

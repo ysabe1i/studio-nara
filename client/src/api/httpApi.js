@@ -35,8 +35,13 @@ export const createProject = (input) => request('/api/projects', { method: 'POST
 export const updateProject = (id, input) => request(`/api/projects/${id}`, { method: 'PUT', body: JSON.stringify(input) })
 export const deleteProject = (id) => request(`/api/projects/${id}`, { method: 'DELETE' })
 
+export const listReflections = (projectId) => request(`/api/projects/${projectId}/reflections`)
+export const createReflection = (projectId, text) =>
+  request(`/api/projects/${projectId}/reflections`, { method: 'POST', body: JSON.stringify({ text }) })
+
 export const listNotes = () => request('/api/notes')
-export const createNote = (text) => request('/api/notes', { method: 'POST', body: JSON.stringify({ text }) })
+export const createNote = (text, projectId) =>
+  request('/api/notes', { method: 'POST', body: JSON.stringify({ text, project_id: projectId ?? null }) })
 export const deleteNote = (id) => request(`/api/notes/${id}`, { method: 'DELETE' })
 
 export async function uploadFile(file) {

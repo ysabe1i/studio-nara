@@ -4,21 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Button from '../components/atoms/Button.jsx'
 import StudioNaraWordmark from '../components/atoms/StudioNaraWordmark.jsx'
 import naraMascot from '../assets/nara-logo.svg'
-
-const ERROR_MESSAGES = {
-  'auth/email-already-in-use': 'an account with this email already exists — try logging in.',
-  'auth/invalid-credential': 'wrong email or password.',
-  'auth/invalid-email': "that email doesn't look right.",
-  'auth/weak-password': 'password needs at least 6 characters.',
-  'auth/too-many-requests': 'too many attempts — wait a bit and try again.',
-  'auth/network-request-failed': "couldn't reach the server — check your connection.",
-}
-
-// Returns null for a closed Google popup (not really an error).
-function friendlyError(caught) {
-  if (caught?.code === 'auth/popup-closed-by-user' || caught?.code === 'auth/cancelled-popup-request') return null
-  return ERROR_MESSAGES[caught?.code] || caught?.message || 'something went wrong.'
-}
+import { friendlyAuthError } from '../utils/authErrors.js'
 
 function GoogleMark() {
   return (
@@ -37,6 +23,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -82,10 +69,10 @@ export default function Login() {
       if (mode === 'login') {
         await login(email, password)
       } else {
-        await signup(email, password)
+        await signup(email, password, displayName.trim())
       }
     } catch (caught) {
-      setError(friendlyError(caught))
+      setError(friendlyAuthError(caught))
     } finally {
       setBusy(false)
     }
@@ -97,7 +84,7 @@ export default function Login() {
     try {
       await loginWithGoogle()
     } catch (caught) {
-      setError(friendlyError(caught))
+      setError(friendlyAuthError(caught))
     } finally {
       setBusy(false)
     }
@@ -111,7 +98,7 @@ export default function Login() {
       const verified = await refreshVerification()
       if (!verified) setNotice("not verified yet — click the link in your email first.")
     } catch (caught) {
-      setError(friendlyError(caught))
+      setError(friendlyAuthError(caught))
     } finally {
       setBusy(false)
     }
@@ -125,7 +112,7 @@ export default function Login() {
       setNotice('sent — check your inbox (and spam).')
       setResendCooldown(30)
     } catch (caught) {
-      setError(friendlyError(caught))
+      setError(friendlyAuthError(caught))
     }
   }
 
@@ -164,7 +151,7 @@ export default function Login() {
           className="bg-accent flex items-center justify-center w-[273px] h-[66px] mb-1 animate-rise motion-reduce:animate-none"
           style={{ clipPath: 'polygon(12.56% 0, 100% 0, 87.44% 100%, 0 100%)' }}
         >
-          <span className="font-geist font-medium text-[32px] text-ink">welcome to</span>
+          <span className="font-geist font-medium text-[32px] text-black">welcome to</span>
         </div>
         <div className="w-full flex justify-center animate-rise motion-reduce:animate-none" style={{ animationDelay: '0.15s' }}>
           <StudioNaraWordmark className="w-full max-w-[696px] h-auto" />
@@ -197,16 +184,24 @@ export default function Login() {
           <>
             <div className="flex gap-2 mb-6 justify-center">
               <button type="button" onClick={() => switchMode('login')}
-                className={`px-4 py-2 rounded-full text-small font-medium ${mode === 'login' ? 'bg-primary text-ink' : 'bg-surface text-ink/70'}`}>
+                className={`px-4 py-2 rounded-full text-small font-medium ${mode === 'login' ? 'bg-primary text-black' : 'bg-surface text-ink/70'}`}>
                 log in
               </button>
               <button type="button" onClick={() => switchMode('signup')}
-                className={`px-4 py-2 rounded-full text-small font-medium ${mode === 'signup' ? 'bg-primary text-ink' : 'bg-surface text-ink/70'}`}>
+                className={`px-4 py-2 rounded-full text-small font-medium ${mode === 'signup' ? 'bg-primary text-black' : 'bg-surface text-ink/70'}`}>
                 sign up
               </button>
             </div>
 
             <form onSubmit={submit} className="space-y-4">
+              {mode === 'signup' && (
+                <div>
+                  <label className="block text-small font-medium text-ink/60 mb-1" htmlFor="display-name">display name</label>
+                  <input id="display-name" type="text" required maxLength={80} value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full bg-surface rounded-lg px-3 py-2 text-body" />
+                </div>
+              )}
               <div>
                 <label className="block text-small font-medium text-ink/60 mb-1" htmlFor="email">email</label>
                 <input id="email" type="email" required value={email}

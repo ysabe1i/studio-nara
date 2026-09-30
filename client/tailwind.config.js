@@ -1,20 +1,33 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
+  // Toggled by a "dark" class on <html>, set from Settings and persisted to
+  // localStorage — see src/context/ThemeContext.jsx.
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
+        // Primary and accent are fixed hex, not variables: they're always
+        // paired with literal black text/borders on their own fill (see
+        // Button.jsx, Tag.jsx) per the contrast rule in
+        // docs/03-design-system.md, and that rule doesn't change with theme.
         // maps to --color-primary in docs/03-design-system.md
         primary: "#FF00AE",
         // maps to --color-accent
         accent: "#C1FF1A",
+        // canvas/surface/ink are CSS variables (defined in styles.css, light
+        // values under :root, dark values under .dark) so every existing
+        // bg-canvas/bg-surface/text-ink usage — including opacity modifiers
+        // like text-ink/60 — automatically follows the theme with no
+        // per-component changes. The "rgb(var(...) / <alpha-value>)" form is
+        // what makes the opacity modifiers keep working.
         // maps to --color-bg — named "canvas" so it doesn't collide with
         // Tailwind's own "bg-*" utility prefix (bg-canvas, not bg-bg)
-        canvas: "#FFFFFF",
+        canvas: "rgb(var(--color-canvas) / <alpha-value>)",
         // maps to --color-surface
-        surface: "#F4F4F0",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
         // maps to --color-text — named "ink" for the same reason (text-ink)
-        ink: "#111111",
+        ink: "rgb(var(--color-ink) / <alpha-value>)",
       },
       fontFamily: {
         // Heading / logo wordmark only — display sizes, never body copy

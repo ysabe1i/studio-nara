@@ -153,7 +153,7 @@ export default function BrandKitBuilder() {
       )}
 
       <div className="flex items-center gap-3 mb-6">
-        <IconButton ariaLabel="Back to library" onClick={() => navigate('/library')} icon={<span aria-hidden="true">←</span>} />
+        <IconButton ariaLabel="Back" onClick={() => navigate(-1)} icon={<span aria-hidden="true">←</span>} />
         <div className="flex-1 flex gap-3">
           <label className="sr-only" htmlFor="kit-name">Kit name</label>
           <input

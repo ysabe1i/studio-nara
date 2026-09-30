@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'home' },
   { to: '/library', label: 'library' },
   { to: '/notes', label: 'quick notes' },
+  { to: '/settings', label: 'settings' },
 ]
 
 export default function Header() {
