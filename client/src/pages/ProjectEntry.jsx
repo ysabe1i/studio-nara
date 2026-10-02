@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getProject, createProject, updateProject, deleteProject, uploadFile, listKits, listReflections, createReflection } from '../api'
+import { getProject, createProject, updateProject, deleteProject, uploadFile, listKits, listReflections, createReflection, deleteReflection } from '../api'
 import ConfirmDelete from '../components/molecules/ConfirmDelete.jsx'
 import Button from '../components/atoms/Button.jsx'
 import IconButton from '../components/atoms/IconButton.jsx'
@@ -94,6 +94,17 @@ export default function ProjectEntry() {
     }
   }
 
+  async function removeReflection(reflectionId) {
+    const previous = reflections
+    setReflections(reflections.filter((r) => r.id !== reflectionId)) // optimistic
+    try {
+      await deleteReflection(id, reflectionId)
+    } catch (caught) {
+      setReflections(previous)
+      setError(caught)
+    }
+  }
+
   async function remove() {
     if (deleting) return
     setDeleting(true)
@@ -184,12 +195,12 @@ export default function ProjectEntry() {
         {kits.map((kit) => <option key={kit.id} value={kit.id}>{kit.name}</option>)}
       </select>
 
-      <details className="mb-4 group">
-        <summary className="text-small font-medium text-ink/60 cursor-pointer mb-1 [&::-webkit-details-marker]:hidden">
-          <span className="inline-block transition-transform group-open:rotate-90 mr-1">›</span>
-          initial notes (optional)
-        </summary>
-        <div className="space-y-3 mt-2">
+      <div className="mb-8">
+        <h2 className="text-subheading-2 font-geist mb-1">project notes</h2>
+        <p className="text-small text-ink/50 mb-3">
+          one overall note for this project. for a dated history as the project moves along, use the reflection log below instead.
+        </p>
+        <div className="space-y-3">
           <div>
             <label className="block text-small font-medium text-ink/60 mb-1" htmlFor="project-notes-worked">
               what worked
@@ -217,7 +228,7 @@ export default function ProjectEntry() {
             />
           </div>
         </div>
-      </details>
+      </div>
 
       {!isNew && (
         <div className="mb-8">
@@ -241,9 +252,19 @@ export default function ProjectEntry() {
           ) : (
             <ul className="space-y-2">
               {reflections.map((entry) => (
-                <li key={entry.id} className="bg-surface rounded-lg px-4 py-3">
-                  <p className="text-small text-ink/50 mb-1">{formatDateTime(entry.created_at)}</p>
-                  <p className="text-body whitespace-pre-wrap">{entry.text}</p>
+                <li key={entry.id} className="flex items-start justify-between gap-3 bg-surface rounded-lg px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-small text-ink/50 mb-1">{formatDateTime(entry.created_at)}</p>
+                    <p className="text-body whitespace-pre-wrap">{entry.text}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeReflection(entry.id)}
+                    aria-label="Delete entry"
+                    className="text-ink/50 hover:text-ink shrink-0"
+                  >
+                    ×
+                  </button>
                 </li>
               ))}
             </ul>

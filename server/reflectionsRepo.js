@@ -1,5 +1,5 @@
-// A reflection log is append-only: entries are added, never edited or
-// removed individually. Ownership runs through the project (project_id ->
+// Entries can be added or deleted, but never edited — a reflection log is a
+// history, not a document. Ownership runs through the project (project_id ->
 // projects.user_id), same indirection kit_colors uses through kits.
 
 export async function getAllForProject(pool, userId, projectId) {
@@ -23,4 +23,15 @@ export async function create(pool, userId, projectId, text) {
     [projectId, text]
   )
   return result.rows[0]
+}
+
+export async function remove(pool, userId, projectId, reflectionId) {
+  const result = await pool.query(
+    `DELETE FROM project_reflections r
+     USING projects p
+     WHERE r.id = $1 AND r.project_id = $2 AND p.id = r.project_id AND p.user_id = $3
+     RETURNING r.id`,
+    [reflectionId, projectId, userId]
+  )
+  return result.rowCount > 0
 }

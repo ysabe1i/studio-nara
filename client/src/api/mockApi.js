@@ -159,6 +159,14 @@ export async function createReflection(projectId, text) {
   return created
 }
 
+export async function deleteReflection(projectId, reflectionId) {
+  await delay()
+  const data = read()
+  if (!data.reflections) data.reflections = []
+  data.reflections = data.reflections.filter((r) => String(r.id) !== String(reflectionId))
+  write(data)
+}
+
 // ---------- quick notes ----------
 
 export async function listNotes() {

@@ -302,6 +302,14 @@ app.post('/api/projects/:id/reflections', async (request, response, next) => {
   } catch (error) { next(error) }
 })
 
+app.delete('/api/projects/:id/reflections/:reflectionId', async (request, response, next) => {
+  try {
+    const removed = await reflections.remove(pool, request.userId, request.params.id, request.params.reflectionId)
+    if (!removed) return response.status(404).json({ error: 'Not found' })
+    response.status(204).end()
+  } catch (error) { next(error) }
+})
+
 app.get('/api/notes', async (request, response, next) => {
   try { response.json(await notes.getAll(pool, request.userId)) } catch (error) { next(error) }
 })

@@ -38,6 +38,8 @@ export const deleteProject = (id) => request(`/api/projects/${id}`, { method: 'D
 export const listReflections = (projectId) => request(`/api/projects/${projectId}/reflections`)
 export const createReflection = (projectId, text) =>
   request(`/api/projects/${projectId}/reflections`, { method: 'POST', body: JSON.stringify({ text }) })
+export const deleteReflection = (projectId, reflectionId) =>
+  request(`/api/projects/${projectId}/reflections/${reflectionId}`, { method: 'DELETE' })
 
 export const listNotes = () => request('/api/notes')
 export const createNote = (text, projectId) =>
