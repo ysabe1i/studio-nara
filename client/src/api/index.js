@@ -32,6 +32,7 @@ export const {
   deleteReflection,
   listNotes,
   createNote,
+  updateNote,
   deleteNote,
   uploadFile,
 } = implementation

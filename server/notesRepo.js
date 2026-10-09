@@ -13,6 +13,14 @@ export async function create(pool, userId, text, projectId) {
   return result.rows[0]
 }
 
+export async function update(pool, userId, id, text, projectId) {
+  const result = await pool.query(
+    'UPDATE quick_notes SET text = $1, project_id = $2 WHERE id = $3 AND user_id = $4 RETURNING *',
+    [text, projectId ?? null, id, userId]
+  )
+  return result.rows[0] ?? null
+}
+
 export async function remove(pool, userId, id) {
   const result = await pool.query('DELETE FROM quick_notes WHERE id = $1 AND user_id = $2 RETURNING id', [id, userId])
   return result.rowCount > 0

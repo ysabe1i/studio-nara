@@ -183,6 +183,16 @@ export async function createNote(text, projectId) {
   return created
 }
 
+export async function updateNote(id, text, projectId) {
+  await delay()
+  const data = read()
+  const index = data.notes.findIndex((n) => String(n.id) === String(id))
+  if (index === -1) return null
+  data.notes[index] = { ...data.notes[index], text, project_id: projectId ?? null }
+  write(data)
+  return data.notes[index]
+}
+
 export async function deleteNote(id) {
   await delay()
   const data = read()

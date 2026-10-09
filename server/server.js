@@ -314,16 +314,38 @@ app.get('/api/notes', async (request, response, next) => {
   try { response.json(await notes.getAll(pool, request.userId)) } catch (error) { next(error) }
 })
 
+function validateNote(body) {
+  const errors = []
+  const text = typeof body.text === 'string' ? body.text.trim() : ''
+  const projectId = body.project_id || null
+
+  if (!text) errors.push('text is required')
+  if (text.length > 2000) errors.push('text must be 2000 characters or fewer')
+
+  return { errors, value: { text, projectId } }
+}
+
 app.post('/api/notes', async (request, response, next) => {
-  const text = typeof request.body?.text === 'string' ? request.body.text.trim() : ''
-  const projectId = request.body?.project_id || null
-  if (!text) return response.status(400).json({ error: 'text is required' })
-  if (text.length > 500) return response.status(400).json({ error: 'text must be 500 characters or fewer' })
+  const { errors, value } = validateNote(request.body ?? {})
+  if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
   try {
-    if (projectId && !(await projects.ownedBy(pool, request.userId, projectId))) {
+    if (value.projectId && !(await projects.ownedBy(pool, request.userId, value.projectId))) {
       return response.status(400).json({ error: 'project_id must be one of your own projects' })
     }
-    response.status(201).json(await notes.create(pool, request.userId, text, projectId))
+    response.status(201).json(await notes.create(pool, request.userId, value.text, value.projectId))
+  } catch (error) { next(error) }
+})
+
+app.put('/api/notes/:id', async (request, response, next) => {
+  const { errors, value } = validateNote(request.body ?? {})
+  if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
+  try {
+    if (value.projectId && !(await projects.ownedBy(pool, request.userId, value.projectId))) {
+      return response.status(400).json({ error: 'project_id must be one of your own projects' })
+    }
+    const row = await notes.update(pool, request.userId, request.params.id, value.text, value.projectId)
+    if (!row) return response.status(404).json({ error: 'Not found' })
+    response.json(row)
   } catch (error) { next(error) }
 })
 

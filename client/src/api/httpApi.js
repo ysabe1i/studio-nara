@@ -44,6 +44,8 @@ export const deleteReflection = (projectId, reflectionId) =>
 export const listNotes = () => request('/api/notes')
 export const createNote = (text, projectId) =>
   request('/api/notes', { method: 'POST', body: JSON.stringify({ text, project_id: projectId ?? null }) })
+export const updateNote = (id, text, projectId) =>
+  request(`/api/notes/${id}`, { method: 'PUT', body: JSON.stringify({ text, project_id: projectId ?? null }) })
 export const deleteNote = (id) => request(`/api/notes/${id}`, { method: 'DELETE' })
 
 export async function uploadFile(file) {

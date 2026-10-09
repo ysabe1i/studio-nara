@@ -22,10 +22,10 @@ One workflow, `.github/workflows/deploy-pages.yml`, builds the client and publis
 | --- | --- | --- | --- |
 | 7 | No secret value is written literally in any workflow YAML file | Yes | I read the whole file. The only values passed in are `${{ vars.NAME }}` references |
 | 8 | Secrets are stored in repository Actions secrets and read with `${{ secrets.NAME }}` | N/A | The workflow needs no secrets. The only values it uses are the public Firebase web config and the API address, which are stored as Actions *variables* because they end up in the public JavaScript anyway |
-| 9 | No workflow step echoes, dumps or debug-prints a secret, and I opened a recent run's log to confirm | No | The YAML only echoes fixed messages (`ready=true`, and a notice and a warning). But I have **not** yet opened a recent run's log to confirm, which this row requires |
+| 9 | No workflow step echoes, dumps or debug-prints a secret, and I opened a recent run's log to confirm | Yes | Opened the latest "Deploy client to GitHub Pages" run (triggered by commit 589e003) and expanded every step. The `npm run build` step prints the `VITE_` env values used at build time, which is expected since they're public Firebase web config and the API URL; no `DATABASE_URL`, password or service-account value appears anywhere in the log |
 | 10 | Uploaded build artifacts contain no `.env`, key file or generated config | Yes | The artifact is `client/dist` only: `index.html`, `404.html`, `favicon.svg` and `assets/`. I listed a fresh build to confirm. It contains only the public `VITE_` values |
 | 11 | Third-party actions are pinned to a commit SHA, not a moveable tag | No | It uses `actions/checkout@v4`, `actions/setup-node@v4`, `actions/upload-pages-artifact@v3` and `actions/deploy-pages@v4`. All are GitHub's own actions, but they are pinned to tags, not SHAs |
-| 12 | Secret scanning and push protection are enabled on the repository | No | Not checked yet. It needs the repository's Settings > Code security page, which I have not opened |
+| 12 | Secret scanning and push protection are enabled on the repository | Yes | Checked the repository's Settings > Code security page: both Secret Protection and Push protection show as enabled |
 
 ## Database
 
@@ -72,4 +72,4 @@ Going through this caught several things I had not planned for. The Firebase adm
 
 **Decision:** I chose not to rotate the Firebase admin key (see row 5).
 
-**Still open:** the first three commits still show my personal email address in the public history (new commits use GitHub's private noreply address, and I chose not to rewrite the old ones); open a recent Actions run log (row 9); check secret scanning and push protection (row 12); pin the Actions to commit SHAs (row 11); and delete the test data a friend created on the live site before I submit.
+**Still open:** the first three commits still show my personal email address in the public history (new commits use GitHub's private noreply address, and I chose not to rewrite the old ones); pin the Actions to commit SHAs (row 11); and delete the test data a friend created on the live site before I submit.

@@ -182,7 +182,7 @@ export default function BrandKitBuilder() {
       </div>
 
       <div
-        className="grid md:grid-cols-3 gap-6 min-w-0 animate-rise motion-reduce:animate-none"
+        className="relative z-10 grid md:grid-cols-3 gap-6 min-w-0 animate-rise motion-reduce:animate-none"
         style={{ animationDelay: '0.1s' }}
       >
         <section className="min-w-0">
