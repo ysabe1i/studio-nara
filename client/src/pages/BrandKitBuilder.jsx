@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getKit, createKit, updateKit, deleteKit, uploadFile, listProjects } from '../api'
+import { useToast } from '../context/ToastContext.jsx'
 import ConfirmDelete from '../components/molecules/ConfirmDelete.jsx'
 import ColorRow from '../components/molecules/ColorRow.jsx'
 import LogoThumbnail from '../components/molecules/LogoThumbnail.jsx'
 import FontPreviewCard from '../components/molecules/FontPreviewCard.jsx'
 import Button from '../components/atoms/Button.jsx'
 import IconButton from '../components/atoms/IconButton.jsx'
+import Spinner from '../components/atoms/Spinner.jsx'
+import StarIcon from '../components/atoms/StarIcon.jsx'
 
 const emptyKit = { name: '', tag: '', colors: [], logos: [], fonts: [] }
 
@@ -18,6 +21,7 @@ export default function BrandKitBuilder() {
   const { id } = useParams()
   const isNew = id === 'new'
   const navigate = useNavigate()
+  const { notify } = useToast()
 
   const [status, setStatus] = useState(isNew ? 'ready' : 'loading')
   const [draft, setDraft] = useState(emptyKit)
@@ -53,9 +57,11 @@ export default function BrandKitBuilder() {
     try {
       if (isNew) {
         const kit = await createKit(draft)
+        notify('Saved!')
         navigate(`/kit/${kit.id}`)
       } else {
         await updateKit(id, draft)
+        notify('Saved!')
       }
     } catch (caught) {
       setError(caught)
@@ -131,13 +137,13 @@ export default function BrandKitBuilder() {
   }
 
   if (status === 'loading') {
-    return <main className="max-w-5xl mx-auto px-6 py-10"><p className="text-ink/60">loading...</p></main>
+    return <main className="max-w-5xl mx-auto px-6 py-10"><div className="flex justify-center py-10"><Spinner /></div></main>
   }
 
   if (status === 'error') {
     return (
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <p className="text-primary" role="alert">
+        <p className="text-small text-ink bg-surface border-l-4 border-primary rounded px-3 py-2" role="alert">
           {error.message} <button onClick={load} className="underline">try again</button>
         </p>
       </main>
@@ -152,16 +158,16 @@ export default function BrandKitBuilder() {
         </p>
       )}
 
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6 animate-rise motion-reduce:animate-none">
         <IconButton ariaLabel="Back" onClick={() => navigate(-1)} icon={<span aria-hidden="true">←</span>} />
-        <div className="flex-1 flex gap-3">
+        <div className="flex-1 flex gap-3 min-w-0">
           <label className="sr-only" htmlFor="kit-name">Kit name</label>
           <input
             id="kit-name"
             value={draft.name}
             onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
             placeholder="kit name"
-            className="text-subheading-2 font-geist bg-transparent outline-none border-b border-transparent focus:border-ink/30 flex-1"
+            className="text-subheading-2 font-geist bg-transparent outline-none border-b border-transparent focus:border-ink/30 flex-1 min-w-0"
           />
           <label className="sr-only" htmlFor="kit-tag">Tag</label>
           <input
@@ -169,14 +175,17 @@ export default function BrandKitBuilder() {
             value={draft.tag}
             onChange={(e) => setDraft((d) => ({ ...d, tag: e.target.value }))}
             placeholder="tag"
-            className="text-body bg-transparent outline-none border-b border-transparent focus:border-ink/30 w-40"
+            className="text-body bg-transparent outline-none border-b border-transparent focus:border-ink/30 w-20 sm:w-40 min-w-0"
           />
         </div>
-        <Button variant="accent2" onClick={save} disabled={saving}>{saving ? 'saving...' : 'save'}</Button>
+        <Button variant="accent2" onClick={save} disabled={saving} className="shrink-0">{saving ? 'saving...' : 'save'}</Button>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <section>
+      <div
+        className="grid md:grid-cols-3 gap-6 min-w-0 animate-rise motion-reduce:animate-none"
+        style={{ animationDelay: '0.1s' }}
+      >
+        <section className="min-w-0">
           <h2 className="text-subheading-2 font-geist mb-3">colors</h2>
           <div className="space-y-2 mb-3">
             {draft.colors.map((c) => (
@@ -196,7 +205,7 @@ export default function BrandKitBuilder() {
           </button>
         </section>
 
-        <section>
+        <section className="min-w-0">
           <h2 className="text-subheading-2 font-geist mb-3">logos</h2>
           <div className="space-y-2 mb-3">
             {draft.logos.map((l) => (
@@ -209,7 +218,7 @@ export default function BrandKitBuilder() {
           </label>
         </section>
 
-        <section>
+        <section className="min-w-0">
           <h2 className="text-subheading-2 font-geist mb-3">fonts</h2>
           <div className="space-y-2 mb-3">
             {draft.fonts.map((f) => (
@@ -229,10 +238,16 @@ export default function BrandKitBuilder() {
       </div>
 
       {!isNew && (
-        <section className="mt-8 bg-surface rounded-lg p-4">
+        <section
+          className="mt-8 bg-surface rounded-lg p-4 animate-rise motion-reduce:animate-none"
+          style={{ animationDelay: '0.2s' }}
+        >
           <h2 className="text-small font-semibold text-ink/60 mb-2">linked projects</h2>
           {linkedProjects.length === 0 ? (
-            <p className="text-small text-ink/50">No projects use this kit yet.</p>
+            <div className="flex items-center gap-2">
+              <StarIcon className="w-4 h-4 text-accent shrink-0" />
+              <p className="text-small text-ink/50">No projects use this kit yet.</p>
+            </div>
           ) : (
             <ul className="text-body space-y-1">
               {linkedProjects.map((p) => <li key={p.id}>{p.title}</li>)}
@@ -242,7 +257,7 @@ export default function BrandKitBuilder() {
       )}
 
       {!isNew && (
-        <div className="mt-8">
+        <div className="mt-8 animate-rise motion-reduce:animate-none" style={{ animationDelay: '0.25s' }}>
           <ConfirmDelete
             label="delete kit"
             message={

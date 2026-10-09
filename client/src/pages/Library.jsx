@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { listKits, listProjects } from '../api'
 import Card from '../components/molecules/Card.jsx'
 import KitPreview from '../components/molecules/KitPreview.jsx'
+import Spinner from '../components/atoms/Spinner.jsx'
 
 export default function Library() {
   const [searchParams] = useSearchParams()
@@ -32,7 +33,11 @@ export default function Library() {
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
-      <div className="flex items-center gap-2 mb-8" role="tablist" aria-label="Library">
+      <div
+        className="flex items-center gap-2 mb-8 animate-rise motion-reduce:animate-none"
+        role="tablist"
+        aria-label="Library"
+      >
         <button
           type="button"
           role="tab"
@@ -57,16 +62,19 @@ export default function Library() {
         </button>
       </div>
 
-      {status === 'loading' && <p className="text-ink/60">loading...</p>}
+      {status === 'loading' && <div className="flex justify-center py-10"><Spinner /></div>}
 
       {status === 'error' && (
-        <p className="text-primary" role="alert">
+        <p className="text-small text-ink bg-surface border-l-4 border-primary rounded px-3 py-2" role="alert">
           {error.message} <button onClick={load} className="underline">try again</button>
         </p>
       )}
 
       {status === 'ready' && (
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div
+          className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 animate-rise motion-reduce:animate-none"
+          style={{ animationDelay: '0.1s' }}
+        >
           {items.map((item) =>
             tab === 'kits' ? (
               <Card

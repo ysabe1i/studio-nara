@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getProject, createProject, updateProject, deleteProject, uploadFile, listKits, listReflections, createReflection, deleteReflection } from '../api'
+import { useToast } from '../context/ToastContext.jsx'
 import ConfirmDelete from '../components/molecules/ConfirmDelete.jsx'
 import Button from '../components/atoms/Button.jsx'
 import IconButton from '../components/atoms/IconButton.jsx'
 import useFileUrl from '../hooks/useFileUrl.js'
+import Spinner from '../components/atoms/Spinner.jsx'
+import StarIcon from '../components/atoms/StarIcon.jsx'
 
 const emptyProject = { title: '', image_url: null, kit_id: '', notes_worked: '', notes_to_change: '' }
 
@@ -16,6 +19,7 @@ export default function ProjectEntry() {
   const { id } = useParams()
   const isNew = id === 'new'
   const navigate = useNavigate()
+  const { notify } = useToast()
 
   const [status, setStatus] = useState(isNew ? 'ready' : 'loading')
   const [draft, setDraft] = useState(emptyProject)
@@ -67,9 +71,11 @@ export default function ProjectEntry() {
     try {
       if (isNew) {
         const project = await createProject(draft)
+        notify('Saved!')
         navigate(`/project/${project.id}`)
       } else {
         await updateProject(id, draft)
+        notify('Saved!')
       }
     } catch (caught) {
       setError(caught)
@@ -119,13 +125,13 @@ export default function ProjectEntry() {
   }
 
   if (status === 'loading') {
-    return <main className="max-w-2xl mx-auto px-6 py-10"><p className="text-ink/60">loading...</p></main>
+    return <main className="max-w-2xl mx-auto px-6 py-10"><div className="flex justify-center py-10"><Spinner /></div></main>
   }
 
   if (status === 'error') {
     return (
       <main className="max-w-2xl mx-auto px-6 py-10">
-        <p className="text-primary" role="alert">
+        <p className="text-small text-ink bg-surface border-l-4 border-primary rounded px-3 py-2" role="alert">
           {error.message} <button onClick={load} className="underline">try again</button>
         </p>
       </main>
@@ -140,7 +146,7 @@ export default function ProjectEntry() {
         </p>
       )}
 
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6 animate-rise motion-reduce:animate-none">
         <IconButton ariaLabel="Back" onClick={() => navigate(-1)} icon={<span aria-hidden="true">←</span>} />
         <label className="sr-only" htmlFor="project-title">Project title</label>
         <input
@@ -148,11 +154,12 @@ export default function ProjectEntry() {
           value={draft.title}
           onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
           placeholder="project title"
-          className="text-subheading-2 font-geist bg-transparent outline-none border-b border-transparent focus:border-ink/30 flex-1"
+          className="text-subheading-2 font-geist bg-transparent outline-none border-b border-transparent focus:border-ink/30 flex-1 min-w-0"
         />
-        <Button variant="accent2" onClick={save}>{saving ? 'saving...' : 'save'}</Button>
+        <Button variant="accent2" onClick={save} className="shrink-0">{saving ? 'saving...' : 'save'}</Button>
       </div>
 
+      <div className="animate-rise motion-reduce:animate-none" style={{ animationDelay: '0.1s' }}>
       <label
         htmlFor="project-image"
         className="group relative block aspect-video bg-surface border border-dashed border-ink/20 rounded-lg mb-4 flex items-center justify-center cursor-pointer overflow-hidden"
@@ -248,7 +255,10 @@ export default function ProjectEntry() {
             </Button>
           </form>
           {reflections.length === 0 ? (
-            <p className="text-small text-ink/50">No entries yet.</p>
+            <div className="flex items-center gap-2">
+              <StarIcon className="w-4 h-4 text-accent shrink-0" />
+              <p className="text-small text-ink/50">No entries yet.</p>
+            </div>
           ) : (
             <ul className="space-y-2">
               {reflections.map((entry) => (
@@ -271,9 +281,10 @@ export default function ProjectEntry() {
           )}
         </div>
       )}
+      </div>
 
       {!isNew && (
-        <div className="mt-8">
+        <div className="mt-8 animate-rise motion-reduce:animate-none" style={{ animationDelay: '0.2s' }}>
           <ConfirmDelete
             label="delete project"
             message="delete this project for good? this can't be undone."

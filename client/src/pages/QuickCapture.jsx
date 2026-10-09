@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listNotes, createNote, deleteNote, listProjects } from '../api'
+import Spinner from '../components/atoms/Spinner.jsx'
+import StarIcon from '../components/atoms/StarIcon.jsx'
 
 function formatDateTime(iso) {
   return new Date(iso).toLocaleString(undefined, {
@@ -68,7 +70,7 @@ export default function QuickCapture() {
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-10">
-      <form onSubmit={submit} className="space-y-2 mb-6">
+      <form onSubmit={submit} className="space-y-2 mb-6 animate-rise motion-reduce:animate-none">
         <div className="flex gap-2">
           <label className="sr-only" htmlFor="new-note">New idea</label>
           <input
@@ -106,11 +108,16 @@ export default function QuickCapture() {
           {error.message}
         </p>
       )}
-      {status === 'loading' && <p className="text-ink/60">loading...</p>}
+      {status === 'loading' && <div className="flex justify-center py-10"><Spinner /></div>}
 
       {status === 'ready' && (
-        <ul className="space-y-2">
-          {notes.length === 0 && <p className="text-small text-ink/50">No notes yet.</p>}
+        <ul className="space-y-2 animate-rise motion-reduce:animate-none" style={{ animationDelay: '0.1s' }}>
+          {notes.length === 0 && (
+            <div className="flex items-center gap-2">
+              <StarIcon className="w-4 h-4 text-accent shrink-0" />
+              <p className="text-small text-ink/50">No notes yet.</p>
+            </div>
+          )}
           {notes.map((note) => (
             <li key={note.id} className="flex items-start justify-between bg-surface rounded-lg px-4 py-3 gap-3">
               <div className="min-w-0">

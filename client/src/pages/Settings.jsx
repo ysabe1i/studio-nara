@@ -94,9 +94,9 @@ export default function Settings() {
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-10 space-y-10">
-      <h1 className="text-subheading-1 font-geist">settings</h1>
+      <h1 className="text-subheading-1 font-geist animate-rise motion-reduce:animate-none">settings</h1>
 
-      <section className="space-y-3">
+      <section className="space-y-3 animate-rise motion-reduce:animate-none" style={{ animationDelay: "0.08s" }}>
         <h2 className="text-subheading-2 font-geist">display name</h2>
         <form onSubmit={submitName} className="flex gap-2">
           <label className="sr-only" htmlFor="settings-display-name">Display name</label>
@@ -115,7 +115,7 @@ export default function Settings() {
         {nameResult && <Notice tone={nameResult.tone}>{nameResult.text}</Notice>}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3 animate-rise motion-reduce:animate-none" style={{ animationDelay: "0.16s" }}>
         <h2 className="text-subheading-2 font-geist">appearance</h2>
         <div className="flex items-center gap-3 bg-surface rounded-lg px-4 py-3">
           <span className="text-body flex-1">{theme === 'dark' ? 'dark mode' : 'light mode'}</span>
@@ -128,13 +128,13 @@ export default function Settings() {
           >
             <span
               aria-hidden="true"
-              className={`absolute top-1 w-5 h-5 rounded-full bg-canvas transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}
+              className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-canvas transition-transform ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}`}
             />
           </button>
         </div>
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3 animate-rise motion-reduce:animate-none" style={{ animationDelay: "0.24s" }}>
         <h2 className="text-subheading-2 font-geist">password</h2>
         {isPasswordAccount ? (
           <form onSubmit={submitPassword} className="space-y-3">
@@ -166,7 +166,7 @@ export default function Settings() {
         )}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3 animate-rise motion-reduce:animate-none" style={{ animationDelay: "0.32s" }}>
         <h2 className="text-subheading-2 font-geist">email</h2>
         <p className="text-small text-ink/60">current: {user?.email}</p>
         <form onSubmit={submitEmail} className="space-y-3">
